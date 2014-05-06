@@ -274,7 +274,42 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Using %s channel %d (%.1fMHz)\n",
 		   bi_to_str(bi), chan, freq / 1e6);
 
-		return offset_detect(u);
+		float off;
+
+		int dac = 0x8000;
+		int delta = 0x4000;
+		int max = 16;
+		do {
+			u->tune_dac(dac);
+			offset_detect(u, &off);
+			if (fabs(off) < 50) {
+				printf("BEGINNING LINEAR SEARCH\n");
+				float lowest = 100e6;
+				int dac_l = 0;
+				for (int i = -20; i < 20; i++) {
+					u->tune_dac(dac + i);
+					offset_detect(u, &off);
+					if (fabs(off) < fabs(lowest)) {
+						dac_l = dac + i;
+						lowest = off;
+					}
+				}
+				printf("Lowest %f was at 0x%x\n", lowest, dac_l);
+				return 0;
+
+			}
+
+			if (off < 0)
+				dac -= delta;
+			if (off > 0)
+				dac += delta;
+			if (off == 0)
+				break;
+
+			delta /= 2;
+			if (max-- < 0) break;
+		} while (off > 30 || off < 30);
+		return 0;
 	}
 
 	fprintf(stderr, "%s: Scanning for %s base stations.\n",

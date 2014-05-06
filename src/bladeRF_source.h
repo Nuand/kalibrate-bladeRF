@@ -40,6 +40,7 @@ public:
 	int open(unsigned int subdev);
 	int read(complex *buf, unsigned int num_samples, unsigned int *samples_read);
 	int fill(unsigned int num_samples, unsigned int *overrun);
+	int tune_dac(int dac);
 	int tune(double freq);
 	bool set_antenna(int antenna);
 	bool set_gain(float gain);

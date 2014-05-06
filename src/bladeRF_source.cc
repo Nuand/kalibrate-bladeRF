@@ -122,6 +122,10 @@ float bladeRF_source::sample_rate() {
 
 }
 
+int bladeRF_source::tune_dac(int dac) {
+	printf("DAC: 0x%.4x\n", dac);
+	return bladerf_dac_write(bdev, dac);
+}
 
 int bladeRF_source::tune(double freq) {
 

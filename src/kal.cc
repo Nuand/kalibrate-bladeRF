@@ -84,6 +84,7 @@ void usage(char *prog) {
 	printf("\t-A\tantenna TX/RX (0) or RX2 (1), defaults to RX2\n");
 	printf("\t-g\tgain as %% of range, defaults to 45%%\n");
 	printf("\t-F\tFPGA master clock frequency, defaults to 52MHz\n");
+	printf("\t-C\tmanually specify DAC trim value\n");
 	printf("\t-v\tverbose\n");
 	printf("\t-D\tenable debug messages\n");
 	printf("\t-h\thelp\n");
@@ -99,10 +100,15 @@ int main(int argc, char **argv) {
 	long int fpga_master_clock_freq = 52000000;
 	float gain = 0.45;
 	double freq = -1.0, fd;
+	int calibration = -1;
 	bladeRF_source *u;
 
-	while((c = getopt(argc, argv, "f:c:s:b:R:A:g:F:vDh?")) != EOF) {
+	while((c = getopt(argc, argv, "f:c:C:s:b:R:A:g:F:vDh?")) != EOF) {
 		switch(c) {
+			case 'C':
+				calibration = strtoul(optarg, 0, 0);
+			break;
+
 			case 'f':
 				freq = strtod(optarg, 0);
 				break;
@@ -273,6 +279,11 @@ int main(int argc, char **argv) {
 
 	fprintf(stderr, "%s: Scanning for %s base stations.\n",
 	   basename(argv[0]), bi_to_str(bi));
+
+	if (calibration != -1) {
+		u->tune_dac(calibration);
+	}
+
 
 	return c0_detect(u, bi);
 }

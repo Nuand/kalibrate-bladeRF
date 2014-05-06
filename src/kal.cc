@@ -104,10 +104,15 @@ int main(int argc, char **argv) {
 	double freq = -1.0, fd;
 	int calibration = -1;
 	int multiplier = 1;
+	int write = 0;
 	bladeRF_source *u;
 
-	while((c = getopt(argc, argv, "f:c:C:m:s:b:R:A:g:F:vDh?")) != EOF) {
+	while((c = getopt(argc, argv, "f:c:C:m:s:b:R:A:g:F:vwDh?")) != EOF) {
 		switch(c) {
+			case 'w':
+				write = 1;
+			break;
+
 			case 'm':
 				multiplier = strtoul(optarg, 0, 0);
 			break;
@@ -321,6 +326,13 @@ int main(int argc, char **argv) {
 			if (max-- < 0) break;
 		} while (off > 30 || off < 30);
 		printf("Found lowest offset of %fHz at %fMHz (%f ppm) using DAC trim 0x%x\n", lowest, freq/1e6, lowest/freq*1e6, dac_l);
+		if (write) {
+			printf("Saving contents to bladeRF flash\n");
+			if (!u->save_dac(dac_l)) {
+				printf("Saved successfully. New calibration data will be used when the next time the device is rebooted.\n");
+			} else
+				printf("Saved unsuccessfully\n");
+		}
 		return 0;
 	}
 

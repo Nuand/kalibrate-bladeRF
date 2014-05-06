@@ -127,6 +127,34 @@ int bladeRF_source::tune_dac(int dac) {
 	return bladerf_dac_write(bdev, dac);
 }
 
+int bladeRF_source::save_dac(int dac) {
+	int rv;
+	bool ok;
+	bladerf_fpga_size fpga_size;
+	struct bladerf_image *image = NULL;
+	uint32_t page, count;
+
+	bladerf_get_fpga_size(bdev, &fpga_size);
+
+	image = bladerf_alloc_cal_image(fpga_size, dac);
+	if (!image) {
+		return 1;
+	}
+
+	rv = bladerf_erase_flash(bdev, BLADERF_FLASH_EB_CAL,
+			BLADERF_FLASH_EB_LEN_CAL);
+	if (rv != 0) {
+		return 1;
+	}
+
+	page = BLADERF_FLASH_TO_PAGES(image->address);
+	count = BLADERF_FLASH_TO_PAGES(image->length);
+
+	rv = bladerf_write_flash(bdev, image->data, page, count);
+
+	return 0;
+}
+
 int bladeRF_source::tune(double freq) {
 
 	int r;

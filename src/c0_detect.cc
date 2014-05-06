@@ -51,7 +51,7 @@ static double vectornorm2(const complex *v, const unsigned int len) {
 }
 
 
-int c0_detect(bladeRF_source *u, int bi) {
+int c0_detect(bladeRF_source *u, int bi, int mult) {
 
 	static const double GSM_RATE = 1625000.0 / 6.0;
 	static const unsigned int NOTFOUND_MAX = 10;
@@ -70,7 +70,7 @@ int c0_detect(bladeRF_source *u, int bi) {
 	}
 
 	sps = u->sample_rate() / GSM_RATE;
-	frames_len = (unsigned int)ceil((12 * 8 * 156.25 + 156.25) * sps);
+	frames_len = (unsigned int)ceil((12 * 8 * 156.25 + 156.25) * sps * mult);
 	ub = u->get_buffer();
 
 	// first, we calculate the power in each channel

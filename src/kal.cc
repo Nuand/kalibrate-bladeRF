@@ -101,10 +101,15 @@ int main(int argc, char **argv) {
 	float gain = 0.45;
 	double freq = -1.0, fd;
 	int calibration = -1;
+	int multiplier = 1;
 	bladeRF_source *u;
 
-	while((c = getopt(argc, argv, "f:c:C:s:b:R:A:g:F:vDh?")) != EOF) {
+	while((c = getopt(argc, argv, "f:c:C:m:s:b:R:A:g:F:vDh?")) != EOF) {
 		switch(c) {
+			case 'm':
+				multiplier = strtoul(optarg, 0, 0);
+			break;
+
 			case 'C':
 				calibration = strtoul(optarg, 0, 0);
 			break;
@@ -279,14 +284,20 @@ int main(int argc, char **argv) {
 		int dac = 0x8000;
 		int delta = 0x4000;
 		int max = 16;
+		float lowest = 100e6;
+		int dac_l = 0;
 		do {
+			printf("================\n");
 			u->tune_dac(dac);
 			offset_detect(u, &off);
+			if (fabs(off) < fabs(lowest)) {
+				dac_l = dac;
+				lowest = off;
+			}
 			if (fabs(off) < 50) {
 				printf("BEGINNING LINEAR SEARCH\n");
-				float lowest = 100e6;
-				int dac_l = 0;
-				for (int i = -20; i < 20; i++) {
+				for (int i = -6; i < 6; i++) {
+					printf("================\n");
 					u->tune_dac(dac + i);
 					offset_detect(u, &off);
 					if (fabs(off) < fabs(lowest)) {
@@ -294,9 +305,7 @@ int main(int argc, char **argv) {
 						lowest = off;
 					}
 				}
-				printf("Lowest %f was at 0x%x\n", lowest, dac_l);
-				return 0;
-
+				break;
 			}
 
 			if (off < 0)
@@ -309,6 +318,7 @@ int main(int argc, char **argv) {
 			delta /= 2;
 			if (max-- < 0) break;
 		} while (off > 30 || off < 30);
+		printf("Found lowest offset of %fHz at %fMHz (%f ppm) using DAC trim 0x%x\n", lowest, freq/1e6, lowest/freq*1e6, dac_l);
 		return 0;
 	}
 
@@ -320,5 +330,5 @@ int main(int argc, char **argv) {
 	}
 
 
-	return c0_detect(u, bi);
+	return c0_detect(u, bi, multiplier);
 }

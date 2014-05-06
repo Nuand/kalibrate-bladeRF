@@ -52,7 +52,7 @@
 #include <sys/time.h>
 #include <errno.h>
 
-#include "usrp_source.h"
+#include "bladeRF_source.h"
 #include "fcch_detector.h"
 #include "arfcn_freq.h"
 #include "offset.h"
@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
 	long int fpga_master_clock_freq = 52000000;
 	float gain = 0.45;
 	double freq = -1.0, fd;
-	usrp_source *u;
+	bladeRF_source *u;
 
 	while((c = getopt(argc, argv, "f:c:s:b:R:A:g:F:vDh?")) != EOF) {
 		switch(c) {
@@ -224,12 +224,12 @@ int main(int argc, char **argv) {
 	// sanity check clock
 	if(fpga_master_clock_freq < 48000000) {
 		fprintf(stderr, "error: FPGA master clock too slow: %li\n", fpga_master_clock_freq);
-		usage(argv[0]);
+//		usage(argv[0]);
 	}
 
 	// calculate decimation -- get as close to GSM rate as we can
-	fd = (double)fpga_master_clock_freq / GSM_RATE;
-	decimation = (unsigned int)fd;
+//	fd = (double)fpga_master_clock_freq / GSM_RATE;
+//	decimation = (unsigned int)fd;
 
 	if(g_debug) {
 #ifdef D_HOST_OSX
@@ -242,24 +242,24 @@ int main(int argc, char **argv) {
 		printf("debug: Gain                  :\t%f\n", gain);
 	}
 
-	u = new usrp_source(decimation, fpga_master_clock_freq);
+	u = new bladeRF_source((float)(GSM_RATE * 4), fpga_master_clock_freq);
 	if(!u) {
-		fprintf(stderr, "error: usrp_source\n");
+		fprintf(stderr, "error: bladeRF_source\n");
 		return -1;
 	}
 	if(u->open(subdev) == -1) {
-		fprintf(stderr, "error: usrp_source::open\n");
+		fprintf(stderr, "error: bladeRF_source::open\n");
 		return -1;
 	}
 	u->set_antenna(antenna);
 	if(!u->set_gain(gain)) {
-		fprintf(stderr, "error: usrp_source::set_gain\n");
+		fprintf(stderr, "error: bladeRF_source::set_gain\n");
 		return -1;
 	}
 
 	if(!bts_scan) {
 		if(!u->tune(freq)) {
-			fprintf(stderr, "error: usrp_source::tune\n");
+			fprintf(stderr, "error: bladeRF_source::tune\n");
 			return -1;
 		}
 

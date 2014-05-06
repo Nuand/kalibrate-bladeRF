@@ -25,7 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "usrp_source.h"
+#include "bladeRF_source.h"
 #include "fcch_detector.h"
 #include "util.h"
 
@@ -37,7 +37,7 @@ static const float		OFFSET_MAX	= 40e3;
 extern int g_verbosity;
 
 
-int offset_detect(usrp_source *u) {
+int offset_detect(bladeRF_source *u) {
 
 	static const double GSM_RATE = 1625000.0 / 6.0;
 
@@ -65,7 +65,7 @@ int offset_detect(usrp_source *u) {
 	count = 0;
 	while(count < AVG_COUNT) {
 
-		// ensure at least s_len contiguous samples are read from usrp
+		// ensure at least s_len contiguous samples are read from bladeRF
 		do {
 			if(u->fill(s_len, &new_overruns)) {
 				return -1;

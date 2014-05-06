@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "usrp_source.h"
+#include "bladeRF_source.h"
 #include "circular_buffer.h"
 #include "fcch_detector.h"
 #include "arfcn_freq.h"
@@ -51,7 +51,7 @@ static double vectornorm2(const complex *v, const unsigned int len) {
 }
 
 
-int c0_detect(usrp_source *u, int bi) {
+int c0_detect(bladeRF_source *u, int bi) {
 
 	static const double GSM_RATE = 1625000.0 / 6.0;
 	static const unsigned int NOTFOUND_MAX = 10;
@@ -82,14 +82,14 @@ int c0_detect(usrp_source *u, int bi) {
 	for(i = first_chan(bi); i > 0; i = next_chan(i, bi)) {
 		freq = arfcn_to_freq(i, &bi);
 		if(!u->tune(freq)) {
-			fprintf(stderr, "error: usrp_source::tune\n");
+			fprintf(stderr, "error: bladeRF_source::tune\n");
 			return -1;
 		}
 
 		do {
 			u->flush();
 			if(u->fill(frames_len, &overruns)) {
-				fprintf(stderr, "error: usrp_source::fill\n");
+				fprintf(stderr, "error: bladeRF_source::fill\n");
 				return -1;
 			}
 		} while(overruns);
@@ -137,14 +137,14 @@ int c0_detect(usrp_source *u, int bi) {
 
 		freq = arfcn_to_freq(i, &bi);
 		if(!u->tune(freq)) {
-			fprintf(stderr, "error: usrp_source::tune\n");
+			fprintf(stderr, "error: bladeRF_source::tune\n");
 			return -1;
 		}
 
 		do {
 			u->flush();
 			if(u->fill(frames_len, &overruns)) {
-				fprintf(stderr, "error: usrp_source::fill\n");
+				fprintf(stderr, "error: bladeRF_source::fill\n");
 				return -1;
 			}
 		} while(overruns);

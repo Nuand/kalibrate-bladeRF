@@ -1,4 +1,5 @@
 bin_PROGRAMS = kal
+USRP_LIBS = -lbladeRF
 
 kal_SOURCES = \
    arfcn_freq.cc \
@@ -7,15 +8,15 @@ kal_SOURCES = \
    fcch_detector.cc \
    kal.cc \
    offset.cc \
-   usrp_source.cc \
+   bladeRF_source.cc \
    util.cc\
    arfcn_freq.h \
    c0_detect.h \
    circular_buffer.h \
    fcch_detector.h \
    offset.h \
-   usrp_complex.h \
-   usrp_source.h \
+   bladeRF_complex.h \
+   bladeRF_source.h \
    util.h\
    version.h
 

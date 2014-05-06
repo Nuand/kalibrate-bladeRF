@@ -34,35 +34,29 @@
 #include <math.h>
 #include <complex>
 
-#include <usrp/usrp_standard.h>
-#include <usrp/usrp_subdev_spec.h>
-#include <usrp/usrp_dbid.h>
 
-#include "usrp_source.h"
+
+#include "bladeRF_source.h"
 
 extern int g_verbosity;
 
 
-usrp_source::usrp_source(float sample_rate, long int fpga_master_clock_freq) {
+bladeRF_source::bladeRF_source(float sample_rate, long int fpga_master_clock_freq) {
 
 	m_fpga_master_clock_freq = fpga_master_clock_freq;
 	m_desired_sample_rate = sample_rate;
 	m_sample_rate = 0.0;
 	m_decimation = 0;
-	m_u_rx.reset();
-	m_db_rx.reset();
 	m_cb = new circular_buffer(CB_LEN, sizeof(complex), 0);
 
 	pthread_mutex_init(&m_u_mutex, 0);
 }
 
 
-usrp_source::usrp_source(unsigned int decimation, long int fpga_master_clock_freq) {
+bladeRF_source::bladeRF_source(unsigned int decimation, long int fpga_master_clock_freq) {
 
 	m_fpga_master_clock_freq = fpga_master_clock_freq;
 	m_sample_rate = 0.0;
-	m_u_rx.reset();
-	m_db_rx.reset();
 	m_cb = new circular_buffer(CB_LEN, sizeof(complex), 0);
 
 	pthread_mutex_init(&m_u_mutex, 0);
@@ -75,7 +69,7 @@ usrp_source::usrp_source(unsigned int decimation, long int fpga_master_clock_fre
 }
 
 
-usrp_source::~usrp_source() {
+bladeRF_source::~bladeRF_source() {
 
 	stop();
 	delete m_cb;
@@ -83,32 +77,34 @@ usrp_source::~usrp_source() {
 }
 
 
-void usrp_source::stop() {
+void bladeRF_source::stop() {
 
 	pthread_mutex_lock(&m_u_mutex);
+#if 0
 	if(m_db_rx)
 		m_db_rx->set_enable(0);
 	if(m_u_rx)
 		m_u_rx->stop();
+#endif
 	pthread_mutex_unlock(&m_u_mutex);
 }
 
 
-void usrp_source::start() {
+void bladeRF_source::start() {
 
 	pthread_mutex_lock(&m_u_mutex);
-	if(m_db_rx)
-		m_db_rx->set_enable(1);
-	if(m_u_rx)
-		m_u_rx->start();
+	if (bladerf_enable_module(bdev, BLADERF_MODULE_RX, 1)) {
+	}
+
 	pthread_mutex_unlock(&m_u_mutex);
 }
 
 
-void usrp_source::calculate_decimation() {
+void bladeRF_source::calculate_decimation() {
 
 	float decimation_f;
 
+#if 0
 	decimation_f = (float)m_u_rx->fpga_master_clock_freq() / m_desired_sample_rate;
 	m_decimation = (unsigned int)round(decimation_f) & ~1;
 
@@ -116,95 +112,105 @@ void usrp_source::calculate_decimation() {
 		m_decimation = 4;
 	if(m_decimation > 256)
 		m_decimation = 256;
+#endif
 }
 
 
-float usrp_source::sample_rate() {
+float bladeRF_source::sample_rate() {
 
 	return m_sample_rate;
 
 }
 
 
-int usrp_source::tune(double freq) {
+int bladeRF_source::tune(double freq) {
 
 	int r;
-	usrp_tune_result tr;
 
 	pthread_mutex_lock(&m_u_mutex);
-	r = m_u_rx->tune(0, m_db_rx, freq, &tr);
+	r = bladerf_set_frequency(bdev, BLADERF_MODULE_RX, freq);
 	pthread_mutex_unlock(&m_u_mutex);
 
-	return r;
+	return !r;
 }
 
 
-bool usrp_source::set_antenna(int antenna) {
+bool bladeRF_source::set_antenna(int antenna) {
 
-	return m_db_rx->select_rx_antenna(antenna);
+	return true;
+	//return m_db_rx->select_rx_antenna(antenna);
 }
 
 
-bool usrp_source::set_gain(float gain) {
+bool bladeRF_source::set_gain(float gain) {
 
-	float min = m_db_rx->gain_min(), max = m_db_rx->gain_max();
+	float min = 0.5, max = 2.0;
 
 	if((gain < 0.0) || (1.0 < gain))
 		return false;
 
-	return m_db_rx->set_gain(min + gain * (max - min));
+	return !bladerf_set_rxvga2(bdev, min + gain * (max - min));
 }
 
 
 /*
- * open() should be called before multiple threads access usrp_source.
+ * open() should be called before multiple threads access bladeRF_source.
  */
-int usrp_source::open(unsigned int subdev) {
+int bladeRF_source::open(unsigned int subdev) {
 
 	int do_set_decim = 0;
-	usrp_subdev_spec ss(subdev, 0);
 
-	if(!m_u_rx) {
+	if(!bdev) {
+		int status;
+
+		if (bladerf_open(&bdev, NULL)) {
+			printf("Couldn't open bladeRF\n");
+			exit(1);
+		}
+
+#define DEFAULT_STREAM_XFERS        64
+#define DEFAULT_STREAM_BUFFERS      5600
+#define DEFAULT_STREAM_SAMPLES      2048
+#define DEFAULT_STREAM_TIMEOUT      4000
+
+		status = bladerf_sync_config(bdev,
+				BLADERF_MODULE_RX,
+				BLADERF_FORMAT_SC16_Q12,
+				DEFAULT_STREAM_BUFFERS,
+				DEFAULT_STREAM_SAMPLES,
+				DEFAULT_STREAM_XFERS,
+				DEFAULT_STREAM_TIMEOUT
+				);
+
 		if(!m_decimation) {
 			do_set_decim = 1;
 			m_decimation = 4;
 		}
-		if(!(m_u_rx = usrp_standard_rx::make(0, m_decimation,
-		   NCHAN, INITIAL_MUX, usrp_standard_rx::FPGA_MODE_NORMAL,
-		   FUSB_BLOCK_SIZE, FUSB_NBLOCKS, FPGA_FILENAME()))) {
-			fprintf(stderr, "error: usrp_standard_rx::make: "
-			   "failed!\n");
+
+//		if(do_set_decim) {
+//			calculate_decimation();
+//		}
+
+		//m_u_rx->set_decim_rate(m_decimation);
+//		m_sample_rate = (double)m_u_rx->fpga_master_clock_freq() / m_decimation;
+		struct bladerf_rational_rate rate, actual;
+		rate.integer = (4 * 13e6) / 48;
+		rate.num = (4 * 13e6) - rate.integer * 48;
+		rate.den = 48;
+		m_sample_rate = (double)4.0 * 13.0e6 / 48.0;
+
+		if (bladerf_set_rational_sample_rate(bdev, BLADERF_MODULE_RX, &rate, &actual)) {
+			printf("Error setting RX sampling rate\n");
 			return -1;
 		}
-		m_u_rx->set_fpga_master_clock_freq(m_fpga_master_clock_freq);
-		m_u_rx->stop();
 
-		if(do_set_decim) {
-			calculate_decimation();
-		}
-
-		m_u_rx->set_decim_rate(m_decimation);
-		m_sample_rate = (double)m_u_rx->fpga_master_clock_freq() / m_decimation;
 
 		if(g_verbosity > 1) {
-			fprintf(stderr, "FPGA clock : %ld\n", m_u_rx->fpga_master_clock_freq());
 			fprintf(stderr, "Decimation : %u\n", m_decimation);
 			fprintf(stderr, "Sample rate: %f\n", m_sample_rate);
 		}
 	}
-	if(!m_u_rx->is_valid(ss)) {
-		fprintf(stderr, "error: invalid daughterboard\n");
-		return -1;
-	}
-	if(!(m_db_rx = m_u_rx->selected_subdev(ss))) {
-		fprintf(stderr, "error: no daughterboard\n");
-		return -1;
-	}
-
-	m_u_rx->set_mux(m_u_rx->determine_rx_mux_value(ss));
-
 	set_gain(0.45);
-	m_db_rx->select_rx_antenna(1); // this is a nop for most db
 
 	return 0;
 }
@@ -212,7 +218,7 @@ int usrp_source::open(unsigned int subdev) {
 
 #define USB_PACKET_SIZE 512
 
-int usrp_source::fill(unsigned int num_samples, unsigned int *overrun_i) {
+int bladeRF_source::fill(unsigned int num_samples, unsigned int *overrun_i) {
 
 	bool overrun;
 	unsigned char ubuf[USB_PACKET_SIZE];
@@ -222,13 +228,10 @@ int usrp_source::fill(unsigned int num_samples, unsigned int *overrun_i) {
 
 	while((m_cb->data_available() < num_samples) && (m_cb->space_available() > 0)) {
 
-		// read one usb packet from the usrp
+		// read one usb packet from the bladeRF
 		pthread_mutex_lock(&m_u_mutex);
-		if(m_u_rx->read(ubuf, sizeof(ubuf), &overrun) != sizeof(ubuf)) {
-			pthread_mutex_unlock(&m_u_mutex);
-			fprintf(stderr, "error: usrp_standard_rx::read\n");
-			return -1;
-		}
+		bladerf_sync_rx(bdev, ubuf, 512 / 4, NULL, 0);
+		overrun = false;
 		pthread_mutex_unlock(&m_u_mutex);
 		if(overrun)
 			overruns++;
@@ -261,7 +264,7 @@ int usrp_source::fill(unsigned int num_samples, unsigned int *overrun_i) {
 }
 
 
-int usrp_source::read(complex *buf, unsigned int num_samples,
+int bladeRF_source::read(complex *buf, unsigned int num_samples,
    unsigned int *samples_read) {
 
 	unsigned int n;
@@ -279,15 +282,15 @@ int usrp_source::read(complex *buf, unsigned int num_samples,
 
 
 /*
- * Don't hold a lock on this and use the usrp at the same time.
+ * Don't hold a lock on this and use the bladeRF at the same time.
  */
-circular_buffer *usrp_source::get_buffer() {
+circular_buffer *bladeRF_source::get_buffer() {
 
 	return m_cb;
 }
 
 
-int usrp_source::flush(unsigned int flush_count) {
+int bladeRF_source::flush(unsigned int flush_count) {
 
 	m_cb->flush();
 	fill(flush_count * USB_PACKET_SIZE, 0);

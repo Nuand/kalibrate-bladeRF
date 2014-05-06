@@ -44,7 +44,7 @@
 #include <fftw3.h>
 
 #include "circular_buffer.h"
-#include "usrp_complex.h"
+#include "bladeRF_complex.h"
 
 class fcch_detector {
 

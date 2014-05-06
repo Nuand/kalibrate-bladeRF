@@ -25,17 +25,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <usrp/usrp_standard.h>
 
-#include "usrp_complex.h"
+#include "bladeRF_complex.h"
 #include "circular_buffer.h"
+#include "libbladeRF.h"
 
 
-class usrp_source {
+class bladeRF_source {
 public:
-	usrp_source(float sample_rate, long int fpga_master_clock_freq = 52000000);
-	usrp_source(unsigned int decimation, long int fpga_master_clock_freq = 52000000);
-	~usrp_source();
+	bladeRF_source(float sample_rate, long int fpga_master_clock_freq = 52000000);
+	bladeRF_source(unsigned int decimation, long int fpga_master_clock_freq = 52000000);
+	~bladeRF_source();
 
 	int open(unsigned int subdev);
 	int read(complex *buf, unsigned int num_samples, unsigned int *samples_read);
@@ -56,8 +56,7 @@ public:
 private:
 	void calculate_decimation();
 
-	usrp_standard_rx_sptr	m_u_rx;
-	db_base_sptr		m_db_rx;
+	struct bladerf 	*bdev;
 
 	float			m_sample_rate;
 	float			m_desired_sample_rate;

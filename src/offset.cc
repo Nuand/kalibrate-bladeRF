@@ -90,6 +90,8 @@ int offset_detect(bladeRF_source *u, float *off) {
 
 				offsets[count] = offset;
 				count += 1;
+				printf("."); fflush(stdout);
+				if (count && !(count % 20)) printf("\n");
 
 				if(g_verbosity > 0) {
 					fprintf(stderr, "\toffset %3u: %.2f\n", count, offset);
@@ -102,6 +104,7 @@ int offset_detect(bladeRF_source *u, float *off) {
 		// consume used samples
 		cb->purge(consumed);
 	}
+	printf("\n");
 
 	u->stop();
 	delete l;

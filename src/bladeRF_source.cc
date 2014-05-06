@@ -153,6 +153,7 @@ bool bladeRF_source::set_gain(float gain) {
 	if((gain < 0.0) || (1.0 < gain))
 		return false;
 
+	return !bladerf_set_rxvga2(bdev, 3);
 	return !bladerf_set_rxvga2(bdev, min + gain * (max - min));
 }
 

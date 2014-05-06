@@ -198,6 +198,20 @@ int bladeRF_source::open(unsigned int subdev) {
 
 		//m_u_rx->set_decim_rate(m_decimation);
 //		m_sample_rate = (double)m_u_rx->fpga_master_clock_freq() / m_decimation;
+		unsigned int bw;
+		bladerf_set_bandwidth(bdev, BLADERF_MODULE_RX, 1500000u, &bw);
+		printf("Actual filter bandwidth = %d kHz\n", bw/1000);
+		int gain;
+		bladerf_set_rxvga1(bdev, 20);
+		bladerf_get_rxvga1(bdev, &gain);
+		printf("rxvga1 = %d dB\n", gain);
+		bladerf_set_rxvga2(bdev, 30);
+		bladerf_set_lna_gain(bdev, BLADERF_LNA_GAIN_MAX);
+
+		bladerf_get_rxvga2(bdev, &gain);
+		bladerf_dac_write(bdev, 0xa1ea);
+
+		printf("rxvga2 = %d dB\n", gain);
 		struct bladerf_rational_rate rate, actual;
 		rate.integer = (4 * 13e6) / 48;
 		rate.num = (4 * 13e6) - rate.integer * 48;

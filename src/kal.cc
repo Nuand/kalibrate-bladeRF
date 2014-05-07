@@ -85,6 +85,8 @@ void usage(char *prog) {
 	printf("\t-g\tgain as %% of range, defaults to 45%%\n");
 	printf("\t-F\tFPGA master clock frequency, defaults to 52MHz\n");
 	printf("\t-C\tmanually specify DAC trim value\n");
+	printf("\t-w\twrite the new DAC calibration value to the device\n");
+	printf("\t-m\tindicate how much longer a scan should stay on each channel (ie. 4)\n");
 	printf("\t-v\tverbose\n");
 	printf("\t-D\tenable debug messages\n");
 	printf("\t-h\thelp\n");

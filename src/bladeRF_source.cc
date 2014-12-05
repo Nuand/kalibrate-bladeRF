@@ -208,7 +208,7 @@ int bladeRF_source::open(unsigned int subdev) {
 
 		status = bladerf_sync_config(bdev,
 				BLADERF_MODULE_RX,
-				BLADERF_FORMAT_SC16_Q12,
+				BLADERF_FORMAT_SC16_Q11,
 				DEFAULT_STREAM_BUFFERS,
 				DEFAULT_STREAM_SAMPLES,
 				DEFAULT_STREAM_XFERS,

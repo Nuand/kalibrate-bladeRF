@@ -93,7 +93,7 @@ void bladeRF_source::stop() {
 void bladeRF_source::start() {
 
 	pthread_mutex_lock(&m_u_mutex);
-	if (bladerf_enable_module(bdev, BLADERF_MODULE_RX, 1)) {
+	if (bladerf_enable_module(bdev, (bladerf_channel_layout)BLADERF_MODULE_RX, 1)) {
 	}
 
 	pthread_mutex_unlock(&m_u_mutex);
@@ -160,7 +160,7 @@ int bladeRF_source::tune(double freq) {
 	int r;
 
 	pthread_mutex_lock(&m_u_mutex);
-	r = bladerf_set_frequency(bdev, BLADERF_MODULE_RX, freq);
+	r = bladerf_set_frequency(bdev, (bladerf_channel_layout)BLADERF_MODULE_RX, freq);
 	pthread_mutex_unlock(&m_u_mutex);
 
 	return !r;
@@ -207,7 +207,7 @@ int bladeRF_source::open(unsigned int subdev) {
 #define DEFAULT_STREAM_TIMEOUT      4000
 
 		status = bladerf_sync_config(bdev,
-				BLADERF_MODULE_RX,
+        (bladerf_channel_layout)BLADERF_MODULE_RX,
 				BLADERF_FORMAT_SC16_Q11,
 				DEFAULT_STREAM_BUFFERS,
 				DEFAULT_STREAM_SAMPLES,
@@ -227,7 +227,7 @@ int bladeRF_source::open(unsigned int subdev) {
 		//m_u_rx->set_decim_rate(m_decimation);
 //		m_sample_rate = (double)m_u_rx->fpga_master_clock_freq() / m_decimation;
 		unsigned int bw;
-		bladerf_set_bandwidth(bdev, BLADERF_MODULE_RX, 1500000u, &bw);
+		bladerf_set_bandwidth(bdev, (bladerf_channel_layout)BLADERF_MODULE_RX, 1500000u, &bw);
 		printf("Actual filter bandwidth = %d kHz\n", bw/1000);
 		int gain;
 		bladerf_set_rxvga1(bdev, 20);
@@ -246,7 +246,7 @@ int bladeRF_source::open(unsigned int subdev) {
 		rate.den = 48;
 		m_sample_rate = (double)4.0 * 13.0e6 / 48.0;
 
-		if (bladerf_set_rational_sample_rate(bdev, BLADERF_MODULE_RX, &rate, &actual)) {
+		if (bladerf_set_rational_sample_rate(bdev, (bladerf_channel_layout)BLADERF_MODULE_RX, &rate, &actual)) {
 			printf("Error setting RX sampling rate\n");
 			return -1;
 		}

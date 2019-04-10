@@ -136,21 +136,18 @@ int bladeRF_source::save_dac(int dac) {
 
 	bladerf_get_fpga_size(bdev, &fpga_size);
 
-	image = bladerf_alloc_cal_image(fpga_size, dac);
+	image = bladerf_alloc_cal_image(bdev, fpga_size, dac);
 	if (!image) {
 		return 1;
 	}
 
-	rv = bladerf_erase_flash(bdev, BLADERF_FLASH_EB_CAL,
-			BLADERF_FLASH_EB_LEN_CAL);
+	rv = bladerf_erase_flash_bytes(bdev, BLADERF_FLASH_ADDR_CAL,
+			BLADERF_FLASH_BYTE_LEN_CAL);
 	if (rv != 0) {
 		return 1;
 	}
 
-	page = BLADERF_FLASH_TO_PAGES(image->address);
-	count = BLADERF_FLASH_TO_PAGES(image->length);
-
-	rv = bladerf_write_flash(bdev, image->data, page, count);
+	rv = bladerf_write_flash_bytes(bdev, image->data, image->address, image->length);
 
 	return 0;
 }
@@ -207,7 +204,7 @@ int bladeRF_source::open(unsigned int subdev) {
 #define DEFAULT_STREAM_TIMEOUT      4000
 
 		status = bladerf_sync_config(bdev,
-				BLADERF_MODULE_RX,
+				static_cast<bladerf_channel_layout>(BLADERF_CHANNEL_RX(0)),
 				BLADERF_FORMAT_SC16_Q11,
 				DEFAULT_STREAM_BUFFERS,
 				DEFAULT_STREAM_SAMPLES,
